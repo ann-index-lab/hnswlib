@@ -162,20 +162,20 @@ get_gt(unsigned int *massQA, unsigned char *massQ, unsigned char *mass, size_t v
 }
 
 static float
-test_approx(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<int> &appr_alg, size_t vecdim,
-            vector<std::priority_queue<std::pair<int, labeltype >>> &answers, size_t k) {
+test_approx(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<float> &appr_alg, size_t vecdim,
+            vector<std::priority_queue<std::pair<float, labeltype >>> &answers, size_t k) {
     size_t correct = 0;
     size_t total = 0;
     //uncomment to test in parallel mode:
     //#pragma omp parallel for
     for (int i = 0; i < qsize; i++) {
         //std::cout<<"qsize i"<<i<<std::endl;
-        std::priority_queue<std::pair<int, labeltype >> result = appr_alg.searchKnn(massQ + vecdim * i, k);
-        std::priority_queue<std::pair<int, labeltype >> gt(answers[i]);
+        std::priority_queue<std::pair<float, labeltype >> result = appr_alg.searchKnn((float*)(massQ) + vecdim * i, k);
+        std::priority_queue<std::pair<float, labeltype >> gt(answers[i]);
         unordered_set<labeltype> g;
         total += gt.size();
         
-        cout<<"gt "<<gt.top().second<<std::endl;
+       // cout<<"gt "<<gt.top().second<<std::endl;
         while (gt.size()) {
 
 
@@ -183,8 +183,8 @@ test_approx(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<
            
             gt.pop();
         }
-      
-       cout<<"result"<<result.top().second<<std::endl;
+
+     //  cout<<"result"<<result.top().second<<std::endl;
         while (result.size()) {
             if (g.find(result.top().second) != g.end()) {
 
@@ -200,8 +200,8 @@ test_approx(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<
 }
 
 static void
-test_vs_recall(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<int> &appr_alg, size_t vecdim,
-               vector<std::priority_queue<std::pair<int, labeltype >>> &answers, size_t k) {
+test_vs_recall(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<float> &appr_alg, size_t vecdim,
+               vector<std::priority_queue<std::pair<float, labeltype >>> &answers, size_t k) {
     vector<size_t> efs;// = { 10,10,10,10,10 };
     for (int i = k; i < 30; i++) {
         efs.push_back(i);
@@ -268,7 +268,7 @@ int* ivecs_read(const char* fname, size_t* d_out, size_t* n_out) {
     return (int*)fvecs_read(fname, d_out, n_out);
 }
 
-
+/*
 void sift_test1B() {
 	
 	
@@ -404,10 +404,10 @@ void sift_test1B() {
 
 
 }
-
+*/
 void sift_test1M() {
-	int efConstruction = 40;
-	int M = 16;
+	int efConstruction = 200;
+	int M = 200;
 	
 
     size_t vecsize;
@@ -415,39 +415,36 @@ void sift_test1M() {
     size_t qsize;
     size_t vecdim;
     size_t k;
-    char path_index[1024];
-    char *path_q = "/Users/cqy/hnswlib/sift/sift_base.fvecs";
-    char *path_data = "/Users/cqy/hnswlib/sift/sift_query.fvecs";
-    char *path_gt = "/Users/cqy/hnswlib/sift/sift_groundtruth.ivecs";
-    
+    //const char *path_q = "/home/cqy/dataset/sift/sift_base.fvecs";
+    //const char *path_data = "/home/cqy/dataset/sift/sift_query.fvecs";
+    //const char *path_gt = "/home/cqy/dataset/sift/sift_groundtruth.ivecs";
 
-    unsigned char *massb = new unsigned char[vecdim];
-    // get data 
-    float* xt = fvecs_read(path_data, &vecdim, &vecsize);
+    // get data
+    std::cout<<"get xt data"<<std::endl;
+    float* xt = fvecs_read("/home/cqy/dataset/sift/sift_base.fvecs", &vecdim, &vecsize);
 
-    float* xq = fvecs_read(path_q, &vecdim, &qsize);
+    float* xq = fvecs_read( "/home/cqy/dataset/sift/sift_query.fvecs", &vecdim, &qsize);
     
-    int* gt = ivecs_read(path_gt, &k, &qsize);
+    int* gt = ivecs_read("/home/cqy/dataset/sift/sift_groundtruth.ivecs", &k, &qsize);
     std::cout<<"xt size "<<vecsize<<" dim"<<vecdim;
     std::cout<<"qt size "<<qsize<<" dim"<<vecdim;
     std::cout<<"topk "<<k<<std::endl;
-    L2SpaceI l2space(vecdim);
+    L2Space l2space(vecdim);
 
-    HierarchicalNSW<int> *appr_alg;
+    HierarchicalNSW<float> *appr_alg;
 
-    appr_alg = new HierarchicalNSW<int>(&l2space, vecsize, M, efConstruction);
-    
+    appr_alg = new HierarchicalNSW<float>(&l2space, vecsize, M, efConstruction);
+#pragma omp parallel for
     for (int i = 0 ; i < vecsize; i++) {
-        appr_alg -> addPoint(xt + i * vecdim, (size_t)i);
+    //    cout<<i<<endl;
+        appr_alg -> addPoint((void*)(xt + i * vecdim), (size_t)i);
     }
     cout<<"end of adding alll point"<<std::endl;
-    cout<<"sizeoffloat"<<sizeof(float)<<endl;
-    cout<<"sizeofint"<<sizeof(int)<<endl;
-    appr_alg->saveIndex(path_index);
+   // appr_alg->saveIndex(path_index);
     // quering 
-    cout<<"get gt "<<std::endl;
-    vector<std::priority_queue<std::pair<int, labeltype >>> answers;
-    (vector<std::priority_queue<std::pair<int, labeltype >>>(qsize)).swap(answers);
+    //cout<<"get gt "<<std::endl;
+    vector<std::priority_queue<std::pair<float, labeltype >>> answers;
+    (vector<std::priority_queue<std::pair<float, labeltype >>>(qsize)).swap(answers);
     for (int i = 0; i < qsize; i++) {
         for (int j = 0; j < k; j++) {
             
