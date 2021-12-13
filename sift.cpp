@@ -3,6 +3,7 @@
 #include <queue>
 #include <chrono>
 #include "hnswlib/hnswlib.h"
+#include <sys/stat.h>
 
 
 #include <unordered_set>
@@ -168,25 +169,29 @@ test_approx(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalNSW<
     //uncomment to test in parallel mode:
     //#pragma omp parallel for
     for (int i = 0; i < qsize; i++) {
-
+        //std::cout<<"qsize i"<<i<<std::endl;
         std::priority_queue<std::pair<int, labeltype >> result = appr_alg.searchKnn(massQ + vecdim * i, k);
         std::priority_queue<std::pair<int, labeltype >> gt(answers[i]);
         unordered_set<labeltype> g;
         total += gt.size();
-
+        
+        cout<<"gt "<<gt.top().second<<std::endl;
         while (gt.size()) {
 
 
             g.insert(gt.top().second);
+           
             gt.pop();
         }
-
+      
+       cout<<"result"<<result.top().second<<std::endl;
         while (result.size()) {
             if (g.find(result.top().second) != g.end()) {
 
                 correct++;
             } else {
             }
+          //  cout<<"result"<<result.top().second<<std::endl;
             result.pop();
         }
 
@@ -210,7 +215,7 @@ test_vs_recall(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalN
     for (size_t ef : efs) {
         appr_alg.setEf(ef);
         StopW stopw = StopW();
-
+        cout<<"search efs"<<ef<<std::endl;
         float recall = test_approx(massQ, vecsize, qsize, appr_alg, vecdim, answers, k);
         float time_us_per_query = stopw.getElapsedTimeMicro() / qsize;
 
@@ -225,6 +230,42 @@ test_vs_recall(unsigned char *massQ, size_t vecsize, size_t qsize, HierarchicalN
 inline bool exists_test(const std::string &name) {
     ifstream f(name.c_str());
     return f.good();
+}
+
+float* fvecs_read(const char* fname, size_t* d_out, size_t* n_out) {
+    FILE* f = fopen(fname, "r");
+    if (!f) {
+        fprintf(stderr, "could not open %s\n", fname);
+        perror("");
+        abort();
+    }
+    int d;
+    fread(&d, 1, sizeof(int), f);
+    assert((d > 0 && d < 1000000) || !"unreasonable dimension");
+    fseek(f, 0, SEEK_SET);
+    struct stat st;
+    fstat(fileno(f), &st);
+    size_t sz = st.st_size;
+    assert(sz % ((d + 1) * 4) == 0 || !"weird file size");
+    size_t n = sz / ((d + 1) * 4);
+
+    *d_out = d;
+    *n_out = n;
+    float* x = new float[n * (d + 1)];
+    size_t nr = fread(x, sizeof(float), n * (d + 1), f);
+    assert(nr == n * (d + 1) || !"could not read whole file");
+
+    // shift array to remove row headers
+    for (size_t i = 0; i < n; i++)
+        memmove(x + i * d, x + 1 + i * (d + 1), d * sizeof(*x));
+
+    fclose(f);
+    return x;
+}
+
+// not very clean, but works as long as sizeof(int) == sizeof(float)
+int* ivecs_read(const char* fname, size_t* d_out, size_t* n_out) {
+    return (int*)fvecs_read(fname, d_out, n_out);
 }
 
 
@@ -361,5 +402,65 @@ void sift_test1B() {
     cout << "Actual memory usage: " << getCurrentRSS() / 1000000 << " Mb \n";
     return;
 
+
+}
+
+void sift_test1M() {
+	int efConstruction = 40;
+	int M = 16;
+	
+
+    size_t vecsize;
+
+    size_t qsize;
+    size_t vecdim;
+    size_t k;
+    char path_index[1024];
+    char *path_q = "/Users/cqy/hnswlib/sift/sift_base.fvecs";
+    char *path_data = "/Users/cqy/hnswlib/sift/sift_query.fvecs";
+    char *path_gt = "/Users/cqy/hnswlib/sift/sift_groundtruth.ivecs";
+    
+
+    unsigned char *massb = new unsigned char[vecdim];
+    // get data 
+    float* xt = fvecs_read(path_data, &vecdim, &vecsize);
+
+    float* xq = fvecs_read(path_q, &vecdim, &qsize);
+    
+    int* gt = ivecs_read(path_gt, &k, &qsize);
+    std::cout<<"xt size "<<vecsize<<" dim"<<vecdim;
+    std::cout<<"qt size "<<qsize<<" dim"<<vecdim;
+    std::cout<<"topk "<<k<<std::endl;
+    L2SpaceI l2space(vecdim);
+
+    HierarchicalNSW<int> *appr_alg;
+
+    appr_alg = new HierarchicalNSW<int>(&l2space, vecsize, M, efConstruction);
+    
+    for (int i = 0 ; i < vecsize; i++) {
+        appr_alg -> addPoint(xt + i * vecdim, (size_t)i);
+    }
+    cout<<"end of adding alll point"<<std::endl;
+    cout<<"sizeoffloat"<<sizeof(float)<<endl;
+    cout<<"sizeofint"<<sizeof(int)<<endl;
+    appr_alg->saveIndex(path_index);
+    // quering 
+    cout<<"get gt "<<std::endl;
+    vector<std::priority_queue<std::pair<int, labeltype >>> answers;
+    (vector<std::priority_queue<std::pair<int, labeltype >>>(qsize)).swap(answers);
+    for (int i = 0; i < qsize; i++) {
+        for (int j = 0; j < k; j++) {
+            
+            answers[i].emplace(0.0f, static_cast<size_t>(gt[i*k + j]));
+          //  cout<<gt[i*k + j]<<endl;
+        }
+    }
+  //  cout<<"start query "<<std::endl;
+    test_vs_recall((unsigned char*)xq, vecsize, qsize, *appr_alg, vecdim, answers, k);
+
+    delete [] gt;
+    delete [] xq;
+    delete [] xt;
+    return ;
 
 }
