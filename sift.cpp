@@ -415,9 +415,6 @@ void sift_test1M() {
     size_t qsize;
     size_t vecdim;
     size_t k;
-    //const char *path_q = "/home/cqy/dataset/sift/sift_base.fvecs";
-    //const char *path_data = "/home/cqy/dataset/sift/sift_query.fvecs";
-    //const char *path_gt = "/home/cqy/dataset/sift/sift_groundtruth.ivecs";
 
     // get data
     std::cout<<"get xt data"<<std::endl;
@@ -432,16 +429,17 @@ void sift_test1M() {
     L2Space l2space(vecdim);
 
     HierarchicalNSW<float> *appr_alg;
+    bool data_compaction = false;
 
-    appr_alg = new HierarchicalNSW<float>(&l2space, vecsize, M, efConstruction);
+    appr_alg = new HierarchicalNSW<float>(&l2space, vecsize, M, efConstruction, data_compaction);
 #pragma omp parallel for
     for (int i = 0 ; i < vecsize; i++) {
         cout<<i<<endl;
         appr_alg -> addPoint((void*)(xt + i * vecdim), (size_t)i);
     }
-    cout<<"end of adding alll point"<<std::endl;
+    cout<<"end of adding all point"<<std::endl;
    // appr_alg->saveIndex(path_index);
-    // quering
+
     //cout<<"get gt "<<std::endl;
     vector<std::priority_queue<std::pair<float, labeltype >>> answers;
     (vector<std::priority_queue<std::pair<float, labeltype >>>(qsize)).swap(answers);
