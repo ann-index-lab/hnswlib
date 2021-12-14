@@ -1,3 +1,7 @@
+
+deps:
+	sudo apt install libhdf5-dev
+
 pypi: dist
 	twine upload dist/*
 

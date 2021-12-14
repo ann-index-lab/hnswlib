@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 2.6)
 project(hnsw_lib
-    LANGUAGES CXX)
+    LANGUAGES CXX C)
+
+find_package(HDF5 COMPONENTS CXX HL REQUIRED)
+
+message(${HDF5_VERSION})
 
 add_library(hnswlib INTERFACE)
 target_include_directories(hnswlib INTERFACE .) 
@@ -25,3 +29,15 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_executable(main main.cpp sift.cpp)
     target_link_libraries(main hnswlib)
 endif()
+
+include_directories(
+    ${HDF5_INCLUDE_DIRS}
+    ${HDF5_CXX_INCLUDE_DIRS}
+    ${HDF5_C_INCLUDE_DIRS}
+    )
+
+add_executable(hdf5_test hdf5_test.cpp)
+target_link_libraries(hdf5_test ${HDF5_LIBRARIES})
+
+add_executable(hdf5_create hdf5_create.cpp)
+target_link_libraries(hdf5_create ${HDF5_LIBRARIES})
