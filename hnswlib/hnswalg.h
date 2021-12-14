@@ -294,17 +294,20 @@ namespace hnswlib {
 #ifdef USE_SSE
                 _mm_prefetch((char *) (visited_array + *(data + 1)), _MM_HINT_T0);
                 _mm_prefetch((char *) (visited_array + *(data + 1) + 64), _MM_HINT_T0);
-                _mm_prefetch(data_level0_memory_ + (*(data + 1)) * size_data_per_element_ + offsetData_, _MM_HINT_T0);
+                //_mm_prefetch(data_level0_memory_ + (*(data + 1)) * size_data_per_element_ + offsetData_, _MM_HINT_T0);
+                _mm_prefetch((char *) (data_.data() + (*(data + 1)) * (*(size_t*)(dist_func_param_))),  _MM_HINT_T0);
                 _mm_prefetch((char *) (data + 2), _MM_HINT_T0);
 #endif
 
                 for (size_t j = 1; j <= size; j++) {
                     int candidate_id = *(data + j);
-//                    if (candidate_id == 0) continue;
+//                    if (candidate_id == 0) continue;s
 #ifdef USE_SSE
                     _mm_prefetch((char *) (visited_array + *(data + j + 1)), _MM_HINT_T0);
-                    _mm_prefetch(data_level0_memory_ + (*(data + j + 1)) * size_data_per_element_ + offsetData_,
-                                 _MM_HINT_T0);////////////
+                    //_mm_prefetch(data_level0_memory_ + (*(data + j + 1)) * size_data_per_element_ + offsetData_,
+                    //             _MM_HINT_T0);////////////
+                    _mm_prefetch((char *) (data_.data() + (*(data + j + 1)) * (*(size_t*)(dist_func_param_))),  _MM_HINT_T0);
+
 #endif
                     if (!(visited_array[candidate_id] == visited_array_tag)) {
 

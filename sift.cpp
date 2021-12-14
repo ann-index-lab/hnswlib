@@ -418,18 +418,18 @@ void sift_test1M() {
 
     // get data
     std::cout<<"get xt data"<<std::endl;
-    float* xt = fvecs_read("../dataset/sift/sift_base.fvecs", &vecdim, &vecsize);
+    float* xt = fvecs_read("/home/cqy/dataset/sift/sift_base.fvecs", &vecdim, &vecsize);
 
-    float* xq = fvecs_read( "../dataset/sift/sift_query.fvecs", &vecdim, &qsize);
+    float* xq = fvecs_read( "/home/cqy/dataset/sift/sift_query.fvecs", &vecdim, &qsize);
     
-    int* gt = ivecs_read("../dataset/sift/sift_groundtruth.ivecs", &k, &qsize);
+    int* gt = ivecs_read("/home/cqy/dataset/sift/sift_groundtruth.ivecs", &k, &qsize);
     std::cout<<"xt size "<<vecsize<<" dim"<<vecdim;
     std::cout<<"qt size "<<qsize<<" dim"<<vecdim;
     std::cout<<"topk "<<k<<std::endl;
     L2Space l2space(vecdim);
 
     HierarchicalNSW<float> *appr_alg;
-    bool data_compaction = false;
+    bool data_compaction = true;
 
     appr_alg = new HierarchicalNSW<float>(&l2space, vecsize, M, efConstruction, data_compaction);
 #pragma omp parallel for
