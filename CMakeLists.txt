@@ -24,4 +24,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
     add_executable(main main.cpp sift.cpp)
     target_link_libraries(main hnswlib)
+
+    add_executable(sift_1m_test sift_1m_test.cpp)
+    target_link_libraries(sift_1m_test hnswlib)
 endif()
