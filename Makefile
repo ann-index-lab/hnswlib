@@ -1,3 +1,9 @@
+dataset: FORCE
+	wget -O dataset/sift.tar.gz ftp://ftp.irisa.fr/local/texmex/corpus/sift.tar.gz
+	tar zxvf dataset/sift.tar.gz -C dataset/
+
+FORCE:
+
 pypi: dist
 	twine upload dist/*
 
