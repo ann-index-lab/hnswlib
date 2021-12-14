@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <unordered_set>
 #include <list>
+#include <vector>
 
 namespace hnswlib {
     typedef unsigned int tableint;
@@ -24,12 +25,19 @@ namespace hnswlib {
             loadIndex(location, s, max_elements);
         }
 
-        HierarchicalNSW(SpaceInterface<dist_t> *s, size_t max_elements, size_t M = 16, size_t ef_construction = 200, size_t random_seed = 100) :
+        HierarchicalNSW(SpaceInterface<dist_t> *s, size_t max_elements, bool compact = false, size_t M = 16, size_t ef_construction = 200, size_t random_seed = 100) :
                 link_list_locks_(max_elements), link_list_update_locks_(max_update_element_locks), element_levels_(max_elements) {
             max_elements_ = max_elements;
 
             num_deleted_ = 0;
-            data_size_ = s->get_data_size();
+           // data_size_ = s->get_data_size();
+            vec_size_ = s->get_data_size();
+            if(compact) {
+                data_size_ = s->get_data_size();
+            } else {
+                data_size_ =0;
+            }
+
             fstdistfunc_ = s->get_dist_func();
             dist_func_param_ = s->get_dist_func_param();
             M_ = M;
@@ -65,6 +73,8 @@ namespace hnswlib {
             size_links_per_element_ = maxM_ * sizeof(tableint) + sizeof(linklistsizeint);
             mult_ = 1 / log(1.0 * M_);
             revSize_ = 1.0 / mult_;
+            size_t dim = *(size_t*)dist_func_param_;
+            data_.resize(max_elements*dim);
         }
 
         struct CompareByFirst {
@@ -95,6 +105,7 @@ namespace hnswlib {
         size_t maxM_;
         size_t maxM0_;
         size_t ef_construction_;
+        std::vector<dist_t> data_;
 
         double mult_, revSize_;
         int maxlevel_;
@@ -118,6 +129,7 @@ namespace hnswlib {
         std::vector<int> element_levels_;
 
         size_t data_size_;
+        size_t vec_size_;
 
         size_t label_offset_;
         DISTFUNC<dist_t> fstdistfunc_;
@@ -142,7 +154,8 @@ namespace hnswlib {
         }
 
         inline char *getDataByInternalId(tableint internal_id) const {
-            return (data_level0_memory_ + internal_id * size_data_per_element_ + offsetData_);
+            //return (data_level0_memory_ + internal_id * size_data_per_element_ + offsetData_);
+            return (char*)(data_.data() + internal_id * (*(size_t*)dist_func_param_));
         }
 
         int getRandomLevel(double reverse_size) {
@@ -837,7 +850,7 @@ namespace hnswlib {
 
         void updatePoint(const void *dataPoint, tableint internalId, float updateNeighborProbability) {
             // update the feature vector associated with existing point with new vector
-            memcpy(getDataByInternalId(internalId), dataPoint, data_size_);
+            memcpy(getDataByInternalId(internalId), dataPoint, vec_size_);
 
             int maxLevelCopy = maxlevel_;
             tableint entryPointCopy = enterpoint_node_;
@@ -1038,7 +1051,7 @@ namespace hnswlib {
 
             // Initialisation of the data and label
             memcpy(getExternalLabeLp(cur_c), &label, sizeof(labeltype));
-            memcpy(getDataByInternalId(cur_c), data_point, data_size_);
+            memcpy(getDataByInternalId(cur_c), data_point, vec_size_);
 
 
             if (curlevel) {

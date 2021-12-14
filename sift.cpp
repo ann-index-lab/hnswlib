@@ -436,12 +436,12 @@ void sift_test1M() {
     appr_alg = new HierarchicalNSW<float>(&l2space, vecsize, M, efConstruction);
 #pragma omp parallel for
     for (int i = 0 ; i < vecsize; i++) {
-    //    cout<<i<<endl;
+        cout<<i<<endl;
         appr_alg -> addPoint((void*)(xt + i * vecdim), (size_t)i);
     }
     cout<<"end of adding alll point"<<std::endl;
    // appr_alg->saveIndex(path_index);
-    // quering 
+    // quering
     //cout<<"get gt "<<std::endl;
     vector<std::priority_queue<std::pair<float, labeltype >>> answers;
     (vector<std::priority_queue<std::pair<float, labeltype >>>(qsize)).swap(answers);
@@ -452,7 +452,6 @@ void sift_test1M() {
           //  cout<<gt[i*k + j]<<endl;
         }
     }
-  //  cout<<"start query "<<std::endl;
     test_vs_recall((unsigned char*)xq, vecsize, qsize, *appr_alg, vecdim, answers, k);
 
     delete [] gt;
